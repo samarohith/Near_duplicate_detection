@@ -22,29 +22,17 @@ void Graph:: readGraph(istream &inp, unsigned vlblCount, unordered_map<char, uns
 	inp >> edgeCount; // the no. of edges in the graph
 	inp >> gid; // the graph-id of the graph
 
-
-	cout <<gid<<endl;
 	unsigned lblcont =101;
 	unsigned elblcont = (lblcont-1)*lblcont;
-	elblcont =(elblcont/2) +lblcont;
-	//unsigned min_edgeLbl = min(elblcont, edgeCount);
-	//cout<<" elblcont "<<elblcont<<" edgeCount "<<edgeCount<<endl;
-	//cout<<"min_edgeLbl "<<min_edgeLbl<<endl;
+	elblcont = (elblcont/2) +lblcont;
 	vertices.resize(vertexCount);
-	cout<<"1"<<endl;
 	degrees.assign(vertexCount, 0);
-	cout<<"2"<<endl;
 	vrtxLbl.resize(vertexCount);
-	cout<<"3"<<endl;
-  edgeTypeVectr.resize(elblcont, 0);
-	cout<<"4"<<endl;
+  	edgeTypeVectr.resize(elblcont, 0);
 	edgeType.resize(edgeCount);
-	cout<<"5"<<endl;
 	unsigned ind = 0;
 	unsigned vid, src_vtx, dest_vtx, ec;
 	unsigned vc;
-	cout <<gid<<endl;
-	//unsigned vc,sc,dc;  //Vertex type -- vc
 	for(int vtx_ind=0; vtx_ind < vertexCount; vtx_ind++)
 	{
 		// each line for each vertex should be in the format like: "v vid(unsigned int)"

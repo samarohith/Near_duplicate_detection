@@ -173,7 +173,7 @@ void printingAndWritingFinalStatistics(int choice,unsigned long looseCount,unsig
 
 int main(int argc, char const *argv[])
 {
-	if(argc<6)
+	if(argc < 5)
 		usage();
 
 	vector<Graph> graph_dataset; // input graph dataset
@@ -188,11 +188,10 @@ int main(int argc, char const *argv[])
 	int choice = stoi(argv[2]);
 
 	// Verifying args
-	if(choice >= 1 && choice <= 6)
+	if(choice >= 1 && choice <= 5)
 	{
 		cout<<"Usage 1 \n";
-		if(argc!=6)
-			usage();
+		if(argc!=5) usage();
 	}
 
 	else
@@ -203,7 +202,6 @@ int main(int argc, char const *argv[])
 	}
 
 	double simScore_threshold = stod(argv[3]); // similarity threshold
-	int dataset_size = stoi(argv[argc-2]); // size of input dataset
 	const string res_dir = argv[argc-1]; // directory in which all stat files would be stored
 	mkdir(res_dir.c_str(),0777);
 
@@ -213,6 +211,15 @@ int main(int argc, char const *argv[])
 		cerr << "Unable to open dataset file" << endl;
 		exit(0);
 	}
+	ifstream fin(argv[1]);
+	string line;
+	while(fin)
+	{
+		getline(fin,line);
+		break;
+	}
+	int dataset_size = stoi(line);
+	
 	// parsing input graph-dataset
 	parseGraphDataset(dataset_file, graph_dataset, dataset_size);
 	cout << "Graph Dataset parsed.\n";
@@ -268,28 +275,17 @@ int main(int argc, char const *argv[])
 	{
 		// size of current graph g1
 		long double currSize = graph_dataset[g1].vertexCount + graph_dataset[g1].edgeCount;
-//		cout<<" g1 " <<g1<< "graph_dataset[g1].gid "<<graph_dataset[g1].gid<< "  currSize "<<currSize<<endl;
 		unordered_set<unsigned long>sizeFilteredGraphSet;
 		//loose bound of PrevSize
                 long double minPrevSize = ceil(currSize/(long double)veo_sim.ubound);
-		//cout<<"choice Entry=  "<<choice<<endl;
-		//cout<<"choice Exit =  "<<choice<<endl;
 		double vIntersection, eIntersection, exact_common_vrtx;
-	//	cout<<g1<<" ............. "<<endl;
 		for(int g2 = g1-1; g2 >= 0; g2--)
 		{
 			double common = 0;
-			//if(graph_dataset[g1].gid ==790 )
-				//cout<<"graph_dataset[g2].gid = "<<graph_dataset[g2].gid<<"  COMMON is "<<common<<endl;
 			out = false;
-			// size of current graph g2
 			long double PrevSize = graph_dataset[g2].vertexCount + graph_dataset[g2].edgeCount;
-//			cout<<" PrevSize "<<PrevSize<<"  g2  "<<g2<<endl;
-			// loose filter
-			if(PrevSize >= minPrevSize)
-				looseCount++;
-			else
-				break;
+			if(PrevSize >= minPrevSize) looseCount++;
+			else break;
 
 			if(choice > 1 ) // Strict Filter
 			{
@@ -384,6 +380,29 @@ int main(int argc, char const *argv[])
 			}
 		} 
 	}
+
+
+	while(!graphQ.empty())
+	{
+		auto pr = graphQ.front();
+		graphQ.pop();
+		auto g1 = pr.first.first;
+		auto g2 = pr.first.second;
+		double c = pr.second;
+		auto sim_score = veo_sim.computeSimilarity(g1,g2,c);
+		if(sim_score > simScore_threshold)
+		{
+			g_res[g1.gid].push_back(make_pair(g2.gid, simScore));
+			simPairCount++;
+		}
+	}
+
+
+
+
+
+
+
 
  	// timestamping end time
 	chrono::high_resolution_clock::time_point cl2 = chrono::high_resolution_clock::now();
