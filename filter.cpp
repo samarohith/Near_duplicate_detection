@@ -381,29 +381,6 @@ int main(int argc, char const *argv[])
 		} 
 	}
 
-
-	while(!graphQ.empty())
-	{
-		auto pr = graphQ.front();
-		graphQ.pop();
-		auto g1 = pr.first.first;
-		auto g2 = pr.first.second;
-		double c = pr.second;
-		auto sim_score = veo_sim.computeSimilarity(g1,g2,c);
-		if(sim_score > simScore_threshold)
-		{
-			g_res[g1.gid].push_back(make_pair(g2.gid, simScore));
-			simPairCount++;
-		}
-	}
-
-
-
-
-
-
-
-
  	// timestamping end time
 	chrono::high_resolution_clock::time_point cl2 = chrono::high_resolution_clock::now();
 	int totalTimeTaken = (clocksTosec(cl0,cl2));
