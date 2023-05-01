@@ -380,7 +380,7 @@ int main(int argc, char const *argv[])
 			}
 		} 
 	}
-
+	chrono::high_resolution_clock::time_point cl1 = chrono::high_resolution_clock::now();
 
 	while(!graphQ.empty())
 	{
@@ -389,8 +389,8 @@ int main(int argc, char const *argv[])
 		auto g1 = pr.first.first;
 		auto g2 = pr.first.second;
 		double c = pr.second;
-		auto sim_score = veo_sim.computeSimilarity(g1,g2,c);
-		if(sim_score > simScore_threshold)
+		simScore = veo_sim.computeSimilarity(g1,g2,c);
+		if(simScore > simScore_threshold)
 		{
 			g_res[g1.gid].push_back(make_pair(g2.gid, simScore));
 			simPairCount++;
@@ -398,15 +398,12 @@ int main(int argc, char const *argv[])
 	}
 
 
-
-
-
-
-
-
  	// timestamping end time
 	chrono::high_resolution_clock::time_point cl2 = chrono::high_resolution_clock::now();
-	int totalTimeTaken = (clocksTosec(cl0,cl2));
+	int totalTimeTaken = (clocksTosec(cl0,cl1));
+	cout<<"time for filters: "<<totalTimeTaken<<endl;
+	totalTimeTaken = (clocksTosec(cl1,cl2));
+	cout<<"time for ged computation: "<< totalTimeTaken<<endl;
 
     	printingAndWritingFinalStatistics(choice,looseCount,strictCount, vrtxOvrlapEdgeStrict, PrefixFilterCount, isBucket, PostfixFilterCount, mismatch,mismatchCount,simPairCount,totalTimeTaken,res_dir,global_score_freq,g_res);
 
