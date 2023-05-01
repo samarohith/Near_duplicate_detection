@@ -176,13 +176,13 @@ void printingAndWritingFinalStatistics(int choice,unsigned long looseCount,unsig
 int find_ged(int id, VEO &veo_sim, vector<pg> &graphQ, const int start)
 {
 	double simPairCount = 0, simScore = 0;
-	for(int i = start; i < start + thread_work; i++)
+	for(int i = start; i < start + thread_work && i < graphQ.size(); i++)
 	{
 		auto g1 = graphQ[i].first.first;
 		auto g2 = graphQ[i].first.second;
 		double c = graphQ[i].second;
 		simScore = veo_sim.computeSimilarity(g1,g2,c);
-		if(simScore >= simScore_threshold)
+		if(simScore > simScore_threshold)
 		{
 			//g_res[g1.gid].push_back(make_pair(g2.gid, simScore));
 			simPairCount++;
@@ -394,6 +394,7 @@ int main(int argc, char const *argv[])
 	ctpl::thread_pool p(num_threads);
 	int sz = graphQ.size();
 	thread_work = sz/num_threads;
+	thread_work++;
 	std::vector<std::future<int>> vec;
 	std::vector<int> count_vector;
 
