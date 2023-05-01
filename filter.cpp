@@ -1,5 +1,6 @@
 #include "veo.h"
 #include <set>
+#include "ctpl_stl.h"
 #include <iterator>
 #include<string>
 #include<queue>
@@ -36,8 +37,9 @@ void usage();
 set<char> global_vrtxlbl_set;
 unordered_map<char, unsigned> global_vrtxlbl_map;  //to map global vertex label to unsigned numeric.
 unordered_map<string, unsigned> global_edgetype_map;
-
-
+unordered_map<unsigned, vector<pair<unsigned, double>>> g_res; // stores graph pair with similarity score
+double simScore_threshold;
+int thread_work = 0;
 
 
 
@@ -171,6 +173,25 @@ void printingAndWritingFinalStatistics(int choice,unsigned long looseCount,unsig
 }
 
 
+int find_ged(int id, VEO &veo_sim, vector<pg> &graphQ, const int start)
+{
+	double simPairCount = 0, simScore = 0;
+	for(int i = start; i < start + thread_work; i++)
+	{
+		auto g1 = graphQ[i].first.first;
+		auto g2 = graphQ[i].first.second;
+		double c = graphQ[i].second;
+		simScore = veo_sim.computeSimilarity(g1,g2,c);
+		if(simScore >= simScore_threshold)
+		{
+			//g_res[g1.gid].push_back(make_pair(g2.gid, simScore));
+			simPairCount++;
+		}
+	}
+	return simPairCount;
+}
+
+
 int main(int argc, char const *argv[])
 {
 	if(argc < 5)
@@ -201,7 +222,7 @@ int main(int argc, char const *argv[])
 		usage();
 	}
 
-	double simScore_threshold = stod(argv[3]); // similarity threshold
+	simScore_threshold = stod(argv[3]); // similarity threshold
 	const string res_dir = argv[argc-1]; // directory in which all stat files would be stored
 	mkdir(res_dir.c_str(),0777);
 
@@ -243,7 +264,7 @@ int main(int argc, char const *argv[])
 
 	printingAndWritingInitialStatistics(choice,simScore_threshold,dataset_size,res_dir,mismatch,no_of_buckets);
 
-	queue<pg> graphQ;
+	vector<pg> graphQ;
 
 	VEO veo_sim = VEO(simScore_threshold);
 
@@ -252,7 +273,7 @@ int main(int argc, char const *argv[])
 		//veo_sim.index(graph_dataset, choice, isBucket, no_of_buckets); // index input graphs
 
 	// Result-set for each graph as vector of other graph's gid and their similarity score as double
-	unordered_map<unsigned, vector<pair<unsigned, double>>> g_res; // stores graph pair with similarity score
+	
 	// Freq of simScore with range of 1% 0-1, 1-2, 1-3, ... 99-100%
 	vector<long long int> global_score_freq(102, 0); // stores sim-score frequency distribution of the dataset
 
@@ -277,7 +298,7 @@ int main(int argc, char const *argv[])
 		long double currSize = graph_dataset[g1].vertexCount + graph_dataset[g1].edgeCount;
 		unordered_set<unsigned long>sizeFilteredGraphSet;
 		//loose bound of PrevSize
-                long double minPrevSize = ceil(currSize/(long double)veo_sim.ubound);
+        long double minPrevSize = ceil(currSize/(long double)veo_sim.ubound);
 		double vIntersection, eIntersection, exact_common_vrtx;
 		for(int g2 = g1-1; g2 >= 0; g2--)
 		{
@@ -354,49 +375,35 @@ int main(int argc, char const *argv[])
 
 			if(out)
 				continue;
-		/*	else if(mismatch)
-			{
-				// mismatching filter
-				out = veo_sim.mismatchingFilter(graph_dataset[g1], graph_dataset[g2], common, simScore_threshold);
-				if(!out)
-					mismatchCount++;
-			}  */
+
 			if(!out)
 			{
 				// naive computation of VEO similarity
 				if(choice >=3)
-					graphQ.push({ {graph_dataset[g1], graph_dataset[g2]}, exact_common_vrtx});
+					graphQ.push_back({ {graph_dataset[g1], graph_dataset[g2]}, exact_common_vrtx});
 				else
 				{
-					graphQ.push({ {graph_dataset[g1], graph_dataset[g2]}, common});
+					graphQ.push_back({ {graph_dataset[g1], graph_dataset[g2]}, common});
 				}
-				/*
-				if(simScore >= simScore_threshold)
-				{
-					g_res[graph_dataset[g1].gid].push_back(make_pair(graph_dataset[g2].gid, simScore));
-					simPairCount++;
-				}
-				*/
 			}
 		} 
 	}
 	chrono::high_resolution_clock::time_point cl1 = chrono::high_resolution_clock::now();
 
-	while(!graphQ.empty())
-	{
-		auto pr = graphQ.front();
-		graphQ.pop();
-		auto g1 = pr.first.first;
-		auto g2 = pr.first.second;
-		double c = pr.second;
-		simScore = veo_sim.computeSimilarity(g1,g2,c);
-		if(simScore > simScore_threshold)
-		{
-			g_res[g1.gid].push_back(make_pair(g2.gid, simScore));
-			simPairCount++;
-		}
-	}
+	int num_threads = 4;
+	ctpl::thread_pool p(num_threads);
+	int sz = graphQ.size();
+	thread_work = sz/num_threads;
+	std::vector<std::future<int>> vec;
+	std::vector<int> count_vector;
 
+	for(int i = 0; i < sz; i = i + thread_work)
+    {
+        vec.push_back(p.push(find_ged, veo_sim, graphQ, i));
+    }
+	
+    for(int i = 0; i < vec.size(); i++)
+		simPairCount += vec[i].get();
 
  	// timestamping end time
 	chrono::high_resolution_clock::time_point cl2 = chrono::high_resolution_clock::now();
@@ -405,7 +412,7 @@ int main(int argc, char const *argv[])
 	totalTimeTaken = (clocksTosec(cl1,cl2));
 	cout<<"time for ged computation: "<< totalTimeTaken<<endl;
 
-    	printingAndWritingFinalStatistics(choice,looseCount,strictCount, vrtxOvrlapEdgeStrict, PrefixFilterCount, isBucket, PostfixFilterCount, mismatch,mismatchCount,simPairCount,totalTimeTaken,res_dir,global_score_freq,g_res);
+    printingAndWritingFinalStatistics(choice,looseCount,strictCount, vrtxOvrlapEdgeStrict, PrefixFilterCount, isBucket, PostfixFilterCount, mismatch,mismatchCount,simPairCount,totalTimeTaken,res_dir,global_score_freq,g_res);
 
 	return 0;
 }
