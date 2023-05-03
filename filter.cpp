@@ -68,6 +68,7 @@ void printingAndWritingInitialStatistics(int choice,double simScore_threshold,in
 }
 void printingAndWritingFinalStatistics(int choice,unsigned long looseCount,unsigned long strictCount, unsigned long vrtxOvrlapEdgeStrict, unsigned long PrefixFilterCount, bool isBucket,unsigned long PostfixFilterCount ,bool mismatch,unsigned long mismatchCount,unsigned long simPairCount,int totalTimeTaken,const string res_dir,vector<long long int>& global_score_freq,unordered_map<unsigned, vector<pair<unsigned, double>>>& g_res)
 {
+	/*
     // Displaying stat file...
 	if(choice >= 1)
 		cout << "Loose Filter Count: " << looseCount << endl;
@@ -84,7 +85,7 @@ void printingAndWritingFinalStatistics(int choice,unsigned long looseCount,unsig
 		cout << "Dynamic Filter Count: " << dynamicCount << endl;
 		if(isBucket)
 			cout << "Partiiton Filter Count: " << partitionCount << endl;
-	}  */
+	}  
 	if(choice >= 3)
 	{
 		cout<<" Vertex Exact Edge Approx Count : "<<vrtxOvrlapEdgeStrict<<endl;
@@ -99,7 +100,7 @@ void printingAndWritingFinalStatistics(int choice,unsigned long looseCount,unsig
         {
                 cout << "Edge Bucket Filter Count: " << PostfixFilterCount << endl;
         }
-
+	*/
 
 
 	//if(mismatch)
@@ -394,8 +395,8 @@ int main(int argc, char const *argv[])
 	int num_threads = 4;
 	ctpl::thread_pool p(num_threads);
 	int sz = graphQ.size();
-	thread_work = 1;
-	//thread_work++;
+	thread_work = sz/num_threads;
+	thread_work++;
 	std::vector<std::future<int>> vec;
 	std::vector<int> count_vector;
 
@@ -412,7 +413,7 @@ int main(int argc, char const *argv[])
 	cout<<"time for ged computation: "<< totalTimeTaken<<endl;
 	totalTimeTaken = (clocksTosec(cl,cl2));
     	printingAndWritingFinalStatistics(choice,looseCount,strictCount, vrtxOvrlapEdgeStrict, PrefixFilterCount, isBucket, PostfixFilterCount, mismatch,mismatchCount,simPairCount,totalTimeTaken,res_dir,global_score_freq,g_res);
-
+    	cout<<endl;
 	return 0;
 }
 
