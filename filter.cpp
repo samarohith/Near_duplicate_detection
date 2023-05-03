@@ -394,8 +394,8 @@ int main(int argc, char const *argv[])
 	int num_threads = 4;
 	ctpl::thread_pool p(num_threads);
 	int sz = graphQ.size();
-	thread_work = sz / num_threads;
-	thread_work++;
+	thread_work = 1;
+	//thread_work++;
 	std::vector<std::future<int>> vec;
 	std::vector<int> count_vector;
 
