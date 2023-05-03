@@ -6,7 +6,7 @@
 
 
 using namespace std;
-using pg = pair<pair<Graph, Graph>, double>;
+using pg = pair<pair<int, int>, double>;
 
 // For parsing the input graph dataset
 void parseGraphDataset(ifstream &inp, vector<Graph> &graph_dataset, int &dataset_size);
@@ -365,10 +365,10 @@ int main(int argc, char const *argv[])
 			{
 				// naive computation of VEO similarity
 				if(choice >=3)
-					graphQ.push({ {graph_dataset[g1], graph_dataset[g2]}, exact_common_vrtx});
+					graphQ.push({ {g1, g2}, exact_common_vrtx});
 				else
 				{
-					graphQ.push({ {graph_dataset[g1], graph_dataset[g2]}, common});
+					graphQ.push({ {g1, g2}, common});
 				}
 				/*
 				if(simScore >= simScore_threshold)
@@ -381,6 +381,8 @@ int main(int argc, char const *argv[])
 		} 
 	}
 	chrono::high_resolution_clock::time_point cl1 = chrono::high_resolution_clock::now();
+	int totalTimeTaken = (clocksTosec(cl0,cl1));
+	cout<<"time for filters: "<<totalTimeTaken<<endl;
 
 	while(!graphQ.empty())
 	{
@@ -389,10 +391,10 @@ int main(int argc, char const *argv[])
 		auto g1 = pr.first.first;
 		auto g2 = pr.first.second;
 		double c = pr.second;
-		simScore = veo_sim.computeSimilarity(g1,g2,c);
-		if(simScore > simScore_threshold)
+		simScore = veo_sim.computeSimilarity(graph_dataset[g1],graph_dataset[g2],c);
+		if(simScore >= simScore_threshold)
 		{
-			g_res[g1.gid].push_back(make_pair(g2.gid, simScore));
+			g_res[graph_dataset[g1].gid].push_back(make_pair(graph_dataset[g2].gid, simScore));
 			simPairCount++;
 		}
 	}
@@ -400,8 +402,6 @@ int main(int argc, char const *argv[])
 
  	// timestamping end time
 	chrono::high_resolution_clock::time_point cl2 = chrono::high_resolution_clock::now();
-	int totalTimeTaken = (clocksTosec(cl0,cl1));
-	cout<<"time for filters: "<<totalTimeTaken<<endl;
 	totalTimeTaken = (clocksTosec(cl1,cl2));
 	cout<<"time for ged computation: "<< totalTimeTaken<<endl;
 
