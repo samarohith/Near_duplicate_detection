@@ -7,7 +7,7 @@
 
 
 using namespace std;
-using pg = pair<pair<Graph, Graph>, double>;
+using pg = pair<pair<int, int>, double>;
 
 // For parsing the input graph dataset
 void parseGraphDataset(ifstream &inp, vector<Graph> &graph_dataset, int &dataset_size);
@@ -40,7 +40,7 @@ unordered_map<string, unsigned> global_edgetype_map;
 unordered_map<unsigned, vector<pair<unsigned, double>>> g_res; // stores graph pair with similarity score
 double simScore_threshold;
 int thread_work = 0;
-
+vector<Graph> graph_dataset; // input graph dataset
 
 
 
@@ -181,7 +181,7 @@ int find_ged(int id, VEO &veo_sim, vector<pg> &graphQ, const int start)
 		auto g1 = graphQ[i].first.first;
 		auto g2 = graphQ[i].first.second;
 		double c = graphQ[i].second;
-		simScore = veo_sim.computeSimilarity(g1,g2,c);
+		simScore = veo_sim.computeSimilarity(graph_dataset[g1],graph_dataset[g2],c);
 		if(simScore > simScore_threshold)
 		{
 			//g_res[g1.gid].push_back(make_pair(g2.gid, simScore));
@@ -194,10 +194,9 @@ int find_ged(int id, VEO &veo_sim, vector<pg> &graphQ, const int start)
 
 int main(int argc, char const *argv[])
 {
+	chrono::high_resolution_clock::time_point cl = chrono::high_resolution_clock::now();
 	if(argc < 5)
 		usage();
-
-	vector<Graph> graph_dataset; // input graph dataset
 
 	// applying mismatch filter
 	bool mismatch=false;
@@ -298,7 +297,7 @@ int main(int argc, char const *argv[])
 		long double currSize = graph_dataset[g1].vertexCount + graph_dataset[g1].edgeCount;
 		unordered_set<unsigned long>sizeFilteredGraphSet;
 		//loose bound of PrevSize
-        long double minPrevSize = ceil(currSize/(long double)veo_sim.ubound);
+        	long double minPrevSize = ceil(currSize/(long double)veo_sim.ubound);
 		double vIntersection, eIntersection, exact_common_vrtx;
 		for(int g2 = g1-1; g2 >= 0; g2--)
 		{
@@ -380,40 +379,39 @@ int main(int argc, char const *argv[])
 			{
 				// naive computation of VEO similarity
 				if(choice >=3)
-					graphQ.push_back({ {graph_dataset[g1], graph_dataset[g2]}, exact_common_vrtx});
+					graphQ.push_back({ {g1, g2}, exact_common_vrtx});
 				else
 				{
-					graphQ.push_back({ {graph_dataset[g1], graph_dataset[g2]}, common});
+					graphQ.push_back({ {g1, g2}, common});
 				}
 			}
 		} 
 	}
 	chrono::high_resolution_clock::time_point cl1 = chrono::high_resolution_clock::now();
-
+	int totalTimeTaken = (clocksTosec(cl0,cl1));
+        cout<<"time for filters: "<<totalTimeTaken<<endl;
+	
 	int num_threads = 4;
 	ctpl::thread_pool p(num_threads);
 	int sz = graphQ.size();
-	thread_work = sz/num_threads;
+	thread_work = sz / num_threads;
 	thread_work++;
 	std::vector<std::future<int>> vec;
 	std::vector<int> count_vector;
 
 	for(int i = 0; i < sz; i = i + thread_work)
-    {
-        vec.push_back(p.push(find_ged, veo_sim, graphQ, i));
-    }
+    	{
+        	vec.push_back(p.push(find_ged, veo_sim, graphQ, i));
+    	}
 	
-    for(int i = 0; i < vec.size(); i++)
+    	for(int i = 0; i < vec.size(); i++)
 		simPairCount += vec[i].get();
 
- 	// timestamping end time
 	chrono::high_resolution_clock::time_point cl2 = chrono::high_resolution_clock::now();
-	int totalTimeTaken = (clocksTosec(cl0,cl1));
-	cout<<"time for filters: "<<totalTimeTaken<<endl;
 	totalTimeTaken = (clocksTosec(cl1,cl2));
 	cout<<"time for ged computation: "<< totalTimeTaken<<endl;
-
-    printingAndWritingFinalStatistics(choice,looseCount,strictCount, vrtxOvrlapEdgeStrict, PrefixFilterCount, isBucket, PostfixFilterCount, mismatch,mismatchCount,simPairCount,totalTimeTaken,res_dir,global_score_freq,g_res);
+	totalTimeTaken = (clocksTosec(cl,cl2));
+    	printingAndWritingFinalStatistics(choice,looseCount,strictCount, vrtxOvrlapEdgeStrict, PrefixFilterCount, isBucket, PostfixFilterCount, mismatch,mismatchCount,simPairCount,totalTimeTaken,res_dir,global_score_freq,g_res);
 
 	return 0;
 }
